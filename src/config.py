@@ -11,10 +11,18 @@ import yaml
 class GMMConfig:
     """Parameters for the GMM component generation."""
 
-    n_components: int = 16
-    radius: float = 1.0
+    layout: str = "ring"  # "ring" or "grid"
     sigma: float = 0.2
     random_seed: int = 42
+
+    # Ring layout
+    n_components: int = 16
+    radius: float = 1.0
+
+    # Grid layout
+    grid_rows: int = 6
+    grid_cols: int = 6
+    grid_spacing: float = 0.4
 
 
 @dataclass

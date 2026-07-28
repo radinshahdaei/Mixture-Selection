@@ -53,21 +53,34 @@ GRID_COLOR = "#e8e8e8"
 # ======================================================================
 
 def build_mixture_index(manifest: dict[str, Path]) -> dict[int, str]:
-    """Build a mapping from simplex dimension (0..139) to mixture label.
+    """Build a mapping from simplex dimension (0..N-1) to mixture label.
 
-    Ordering: Type 1 (g0..g15), then Type 2 (g0g1..g14g15), then Type 3 (q0..q3).
+    Ordering: Type 1, then Type 2, then Type 3. Within each type, labels
+    are sorted by their integer components. Works for both ring labels
+    (e.g. ``type1_0``, ``type2_0_1``) and grid labels
+    (e.g. ``type1_0_0``, ``type2_0_1_2_3``, ``type3_block_0``).
     """
+    def _sort_key(label: str):
+        parts = label.split("_")
+        type_str = parts[0]  # "type1", "type2", "type3"
+        type_num = int(type_str[-1])
+        if type_num == 3 and len(parts) > 1 and parts[1] == "block":
+            # type3_block_N
+            return (type_num, int(parts[2]))
+        else:
+            return (type_num, tuple(int(p) for p in parts[1:]))
+
     type1 = sorted(
         [k for k in manifest if k.startswith("type1_")],
-        key=lambda x: int(x.split("_")[1]),
+        key=_sort_key,
     )
     type2 = sorted(
         [k for k in manifest if k.startswith("type2_")],
-        key=lambda x: tuple(int(i) for i in x.split("_")[1:]),
+        key=_sort_key,
     )
     type3 = sorted(
         [k for k in manifest if k.startswith("type3_")],
-        key=lambda x: tuple(int(i) for i in x.split("_")[1:]),
+        key=_sort_key,
     )
     ordered = type1 + type2 + type3
     return {i: label for i, label in enumerate(ordered)}
@@ -92,6 +105,7 @@ def plot_mixture_selection(
     point_size: float = 1.2,
     show_means: bool = False,
     show_circle: bool = True,
+    layout: str = "ring",
     title: Optional[str] = None,
     legend: bool = True,
     legend_max_entries: int = 20,
@@ -126,7 +140,9 @@ def plot_mixture_selection(
     show_means : bool
         Whether to mark component means with X markers.
     show_circle : bool
-        Whether to draw the reference circle.
+        Whether to draw the reference circle (ring layout only).
+    layout : str
+        ``"ring"`` or ``"grid"`` — controls reference geometry decorations.
     title : str, optional
         Plot title (auto-generated if None).
     legend : bool
@@ -198,9 +214,14 @@ def plot_mixture_selection(
 
     # Determine bounds from data
     first_data = np.load(list(manifest.values())[0], allow_pickle=True)
-    radius_val = float(first_data.get("radius", 1.0))
     sigma_val = float(first_data.get("sigma", 0.2))
-    margin = radius_val + 4 * sigma_val
+    if layout == "ring" and "radius" in first_data:
+        half_extent = float(first_data["radius"])
+    else:
+        # Compute half-extent from stored means (works for both ring and grid)
+        means = first_data["means"]
+        half_extent = float(np.max(np.abs(means))) if len(means) > 0 else 1.0
+    margin = half_extent + 4 * sigma_val
 
     legend_handles = []
 
@@ -237,16 +258,21 @@ def plot_mixture_selection(
 
     # -- Overlay decorations ------------------------------------------------
     if show_means:
-        # Get all unique component indices used across all active mixtures
-        all_comp_indices: set[int] = set()
+        # Collect all unique (component_index, mean) pairs from active mixtures
+        seen_indices: set[int] = set()
+        comp_info: list[tuple[int, tuple[float, float]]] = []
         for label in active_labels:
             data = np.load(manifest[label], allow_pickle=True)
-            all_comp_indices.update(data["component_indices"].tolist())
+            indices = data["component_indices"]
+            means_arr = data["means"]
+            for i in range(len(indices)):
+                ci = int(indices[i])
+                if ci not in seen_indices:
+                    seen_indices.add(ci)
+                    mx, my = float(means_arr[i, 0]), float(means_arr[i, 1])
+                    comp_info.append((ci, (mx, my)))
 
-        for k in sorted(all_comp_indices):
-            theta = 2.0 * np.pi * k / 16
-            mx = radius_val * np.cos(theta)
-            my = radius_val * np.sin(theta)
+        for k, (mx, my) in sorted(comp_info, key=lambda x: x[0]):
             ax.plot(mx, my, "X", color=COMPONENT_MEAN_COLOR,
                     markersize=10, markeredgewidth=1.5, zorder=10)
             ax.annotate(
@@ -256,9 +282,9 @@ def plot_mixture_selection(
                 zorder=11,
             )
 
-    if show_circle:
+    if show_circle and layout == "ring":
         circle = plt.Circle(
-            (0, 0), radius_val, fill=False,
+            (0, 0), half_extent, fill=False,
             edgecolor=REFERENCE_CIRCLE_COLOR,
             linewidth=0.8, linestyle="--", alpha=0.6, zorder=0,
         )
@@ -322,6 +348,7 @@ def plot_reference(
     alpha: float = 0.40,
     total_samples: int = 16000,
     rng_seed: int = 42,
+    layout: str = "ring",
     save_path: Optional[Path] = None,
     dpi: int = 150,
 ) -> plt.Figure:
@@ -347,7 +374,8 @@ def plot_reference(
         point_size=point_size,
         show_means=True,
         show_circle=True,
-        title="Reference — All 16 Base Gaussians on the Ring",
+        layout=layout,
+        title="Reference — All Base Gaussians" if layout == "grid" else "Reference — All 16 Base Gaussians on the Ring",
         legend=True,
         rng_seed=rng_seed,
         save_path=save_path,
@@ -406,6 +434,74 @@ def demo_weight_vectors(manifest: dict[str, Path]) -> dict[str, np.ndarray]:
     w[label_to_idx["type1_0"]] = 0.2
     w[label_to_idx["type2_4_12"]] = 0.3
     w[label_to_idx["type3_8_9_10_11"]] = 0.5
+    demos["Mixed: Type-1 + Type-2 + Type-3"] = w
+
+    # 7. Sparse random: 5 random mixtures
+    w = np.zeros(n_total)
+    rng = np.random.default_rng(42)
+    chosen = rng.choice(n_total, size=5, replace=False)
+    rand_weights = rng.dirichlet(np.ones(5))
+    for i, wi in zip(chosen, rand_weights):
+        w[i] = wi
+    demos["Sparse random (5 mixtures)"] = w
+
+    return demos
+
+
+# ======================================================================
+# Grid demo weight vectors
+# ======================================================================
+
+def grid_demo_weight_vectors(manifest: dict[str, Path]) -> dict[str, np.ndarray]:
+    """Return interesting weight vectors for the grid layout.
+
+    Returns
+    -------
+    dict[str, ndarray]
+        Keys are human-readable descriptions, values are 265-dim weight vectors.
+    """
+    idx_map = build_mixture_index(manifest)
+    label_to_idx = {v: k for k, v in idx_map.items()}
+    n_total = len(manifest)
+
+    demos: dict[str, np.ndarray] = {}
+
+    # 1. Single Type-1 (corner gaussian)
+    w = np.zeros(n_total)
+    w[label_to_idx["type1_0_0"]] = 1.0
+    demos["Single Type-1 (top-left corner)"] = w
+
+    # 2. Single Type-2 (2x2 block at top-left)
+    w = np.zeros(n_total)
+    w[label_to_idx["type2_0_1_0_1"]] = 1.0
+    demos["Single Type-2 (2x2 block top-left)"] = w
+
+    # 3. Single Type-3 (first 3x3 block)
+    w = np.zeros(n_total)
+    w[label_to_idx["type3_block_0"]] = 1.0
+    demos["Single Type-3 (3x3 block 0)"] = w
+
+    # 4. All 4 Type-3 equally weighted (the 4-sparse optimum)
+    w = np.zeros(n_total)
+    for bi in range(4):
+        w[label_to_idx[f"type3_block_{bi}"]] = 0.25
+    demos["All 4 Type-3 (4-sparse optimum)"] = w
+
+    # 5. All 36 Type-1 equally weighted (the RKE optimum)
+    w = np.zeros(n_total)
+    type1_labels = sorted(
+        [k for k in manifest if k.startswith("type1_")],
+        key=lambda x: (int(x.split("_")[1]), int(x.split("_")[2])),
+    )
+    for lbl in type1_labels:
+        w[label_to_idx[lbl]] = 1.0 / len(type1_labels)
+    demos["All 36 Type-1 (RKE optimum)"] = w
+
+    # 6. Mixed: one of each type
+    w = np.zeros(n_total)
+    w[label_to_idx["type1_3_3"]] = 0.2
+    w[label_to_idx["type2_2_4_2_4"]] = 0.3
+    w[label_to_idx["type3_block_2"]] = 0.5
     demos["Mixed: Type-1 + Type-2 + Type-3"] = w
 
     # 7. Sparse random: 5 random mixtures

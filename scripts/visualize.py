@@ -42,6 +42,7 @@ from src.sampling import SampleManager
 from src.visualize import (
     build_mixture_index,
     demo_weight_vectors,
+    grid_demo_weight_vectors,
     plot_mixture_selection,
     plot_reference,
 )
@@ -51,7 +52,7 @@ from src.visualize import (
 # Preset weight vectors
 # ======================================================================
 
-def _build_presets(manifest: dict[str, Path]) -> dict[str, np.ndarray]:
+def _build_presets(manifest: dict[str, Path], layout: str = "ring") -> dict[str, np.ndarray]:
     """Build preset weight vectors for common cases."""
     idx_map = build_mixture_index(manifest)
     label_to_idx = {v: k for k, v in idx_map.items()}
@@ -59,60 +60,95 @@ def _build_presets(manifest: dict[str, Path]) -> dict[str, np.ndarray]:
 
     presets: dict[str, np.ndarray] = {}
 
-    # --- 4-sparse optimum: all 4 Type-3 equally weighted ---
-    w = np.zeros(n)
-    for qi in ["type3_0_1_2_3", "type3_4_5_6_7",
-               "type3_8_9_10_11", "type3_12_13_14_15"]:
-        w[label_to_idx[qi]] = 0.25
-    presets["four-sparse"] = w
+    if layout == "grid":
+        # --- Grid presets ---
+        w = np.zeros(n)
+        for bi in range(4):
+            w[label_to_idx[f"type3_block_{bi}"]] = 0.25
+        presets["four-sparse"] = w
 
-    # --- RKE optimum: all 16 Type-1 equally weighted ---
-    w = np.zeros(n)
-    for k in range(16):
-        w[label_to_idx[f"type1_{k}"]] = 1.0 / 16
-    presets["rke-optimum"] = w
+        w = np.zeros(n)
+        type1_labels = sorted(
+            [k for k in manifest if k.startswith("type1_")],
+            key=lambda x: (int(x.split("_")[1]), int(x.split("_")[2])),
+        )
+        for lbl in type1_labels:
+            w[label_to_idx[lbl]] = 1.0 / len(type1_labels)
+        presets["rke-optimum"] = w
+        presets["type1-only"] = w
 
-    # --- All Type-1 equally weighted ---
-    w = np.zeros(n)
-    for k in range(16):
-        w[label_to_idx[f"type1_{k}"]] = 1.0 / 16
-    presets["type1-only"] = w
+        w = np.zeros(n)
+        type2_labels = [lbl for lbl in manifest if lbl.startswith("type2_")]
+        for lbl in type2_labels:
+            w[label_to_idx[lbl]] = 1.0 / len(type2_labels)
+        presets["type2-only"] = w
 
-    # --- All Type-2 equally weighted ---
-    w = np.zeros(n)
-    type2_labels = [lbl for lbl in manifest if lbl.startswith("type2_")]
-    for lbl in type2_labels:
-        w[label_to_idx[lbl]] = 1.0 / len(type2_labels)
-    presets["type2-only"] = w
+        w = np.zeros(n)
+        type3_labels = [lbl for lbl in manifest if lbl.startswith("type3_")]
+        for lbl in type3_labels:
+            w[label_to_idx[lbl]] = 1.0 / len(type3_labels)
+        presets["type3-only"] = w
 
-    # --- All Type-3 equally weighted ---
-    w = np.zeros(n)
-    type3_labels = [lbl for lbl in manifest if lbl.startswith("type3_")]
-    for lbl in type3_labels:
-        w[label_to_idx[lbl]] = 1.0 / len(type3_labels)
-    presets["type3-only"] = w
+        w = np.zeros(n)
+        w[label_to_idx["type1_3_3"]] = 0.2
+        w[label_to_idx["type2_2_4_2_4"]] = 0.3
+        w[label_to_idx["type3_block_2"]] = 0.5
+        presets["mixed"] = w
 
-    # --- Mixed: one representative from each type ---
-    w = np.zeros(n)
-    w[label_to_idx["type1_0"]] = 0.2
-    w[label_to_idx["type2_4_12"]] = 0.3
-    w[label_to_idx["type3_8_9_10_11"]] = 0.5
-    presets["mixed"] = w
+        w = np.zeros(n)
+        w[label_to_idx["type1_0_0"]] = 1.0
+        presets["single-type1"] = w
 
-    # --- Single Type-1 ---
-    w = np.zeros(n)
-    w[label_to_idx["type1_0"]] = 1.0
-    presets["single-type1"] = w
+        w = np.zeros(n)
+        w[label_to_idx["type2_0_1_0_1"]] = 1.0
+        presets["single-type2"] = w
 
-    # --- Single Type-2 ---
-    w = np.zeros(n)
-    w[label_to_idx["type2_0_8"]] = 1.0
-    presets["single-type2"] = w
+        w = np.zeros(n)
+        w[label_to_idx["type3_block_0"]] = 1.0
+        presets["single-type3"] = w
+    else:
+        # --- Ring presets (original) ---
+        w = np.zeros(n)
+        for qi in ["type3_0_1_2_3", "type3_4_5_6_7",
+                   "type3_8_9_10_11", "type3_12_13_14_15"]:
+            w[label_to_idx[qi]] = 0.25
+        presets["four-sparse"] = w
 
-    # --- Single Type-3 ---
-    w = np.zeros(n)
-    w[label_to_idx["type3_0_1_2_3"]] = 1.0
-    presets["single-type3"] = w
+        w = np.zeros(n)
+        for k in range(16):
+            w[label_to_idx[f"type1_{k}"]] = 1.0 / 16
+        presets["rke-optimum"] = w
+        presets["type1-only"] = w
+
+        w = np.zeros(n)
+        type2_labels = [lbl for lbl in manifest if lbl.startswith("type2_")]
+        for lbl in type2_labels:
+            w[label_to_idx[lbl]] = 1.0 / len(type2_labels)
+        presets["type2-only"] = w
+
+        w = np.zeros(n)
+        type3_labels = [lbl for lbl in manifest if lbl.startswith("type3_")]
+        for lbl in type3_labels:
+            w[label_to_idx[lbl]] = 1.0 / len(type3_labels)
+        presets["type3-only"] = w
+
+        w = np.zeros(n)
+        w[label_to_idx["type1_0"]] = 0.2
+        w[label_to_idx["type2_4_12"]] = 0.3
+        w[label_to_idx["type3_8_9_10_11"]] = 0.5
+        presets["mixed"] = w
+
+        w = np.zeros(n)
+        w[label_to_idx["type1_0"]] = 1.0
+        presets["single-type1"] = w
+
+        w = np.zeros(n)
+        w[label_to_idx["type2_0_8"]] = 1.0
+        presets["single-type2"] = w
+
+        w = np.zeros(n)
+        w[label_to_idx["type3_0_1_2_3"]] = 1.0
+        presets["single-type3"] = w
 
     return presets
 
@@ -159,9 +195,10 @@ def main():
     # Load config
     config = load_config(args.config)
     viz_cfg = config.visualization
+    layout = config.gmm.layout
 
-    # Load manifest
-    samples_dir = Path(config.sampling.output_dir)
+    # Load manifest (layout-specific subdirectory)
+    samples_dir = Path(config.sampling.output_dir) / layout
     try:
         manifest = SampleManager.load_manifest(samples_dir)
     except FileNotFoundError:
@@ -171,18 +208,21 @@ def main():
 
     print(f"Loaded {len(manifest)} mixtures from manifest.")
 
-    figures_dir = Path(viz_cfg.figure_dir)
+    figures_dir = Path(viz_cfg.figure_dir) / layout
 
     # -- Reference plot ------------------------------------------------------
     if args.reference:
-        print("  Plotting: Reference (all 16 base Gaussians)")
-        ref_path = args.output or (figures_dir / "reference_16_gaussians.png")
+        ref_desc = "all 36 base Gaussians" if layout == "grid" else "all 16 base Gaussians"
+        print(f"  Plotting: Reference ({ref_desc})")
+        ref_fname = "reference_grid.png" if layout == "grid" else "reference_ring.png"
+        ref_path = args.output or (figures_dir / ref_fname)
         plot_reference(
             manifest=manifest,
             total_samples=viz_cfg.total_samples,
             figsize=viz_cfg.figsize,
             alpha=viz_cfg.scatter_alpha,
             point_size=viz_cfg.scatter_point_size,
+            layout=layout,
             save_path=ref_path,
             dpi=viz_cfg.dpi,
         )
@@ -208,12 +248,15 @@ def main():
         to_plot["Custom weights"] = weights
 
     if args.preset:
-        presets = _build_presets(manifest)
+        presets = _build_presets(manifest, layout=layout)
         to_plot[args.preset] = presets[args.preset]
 
     if args.demo or (not args.weights and not args.preset and not args.reference):
-        presets = _build_presets(manifest)
-        demos = demo_weight_vectors(manifest)
+        presets = _build_presets(manifest, layout=layout)
+        if layout == "grid":
+            demos = grid_demo_weight_vectors(manifest)
+        else:
+            demos = demo_weight_vectors(manifest)
         # Use the demo weight vectors
         to_plot.update(demos)
 
@@ -239,6 +282,7 @@ def main():
             figsize=viz_cfg.figsize,
             alpha=viz_cfg.scatter_alpha,
             point_size=viz_cfg.scatter_point_size,
+            layout=layout,
             title=name,
             save_path=save_path,
             dpi=viz_cfg.dpi,

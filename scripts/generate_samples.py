@@ -16,7 +16,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src.config import load_config
-from src.mixtures import MixtureFactory
+from src.grid_mixtures import GridMixtureFactory
+from src.mixtures import RingMixtureFactory
 from src.sampling import SampleManager
 
 
@@ -34,32 +35,39 @@ def main():
 
     # Load config
     config = load_config(args.config)
-    print(f"Loaded config: n={config.gmm.n_components}, "
-          f"R={config.gmm.radius}, σ={config.gmm.sigma}, "
-          f"seed={config.gmm.random_seed}")
+    layout = config.gmm.layout
+    print(f"Layout: {layout}")
+    print(f"Loaded config: σ={config.gmm.sigma}, seed={config.gmm.random_seed}")
     print(f"Samples per mixture: {config.sampling.n_samples}")
-    print(f"Output directory: {config.sampling.output_dir}")
 
-    # Create all 140 mixtures
+    # Route samples to layout-specific subdirectory
+    base_dir = Path(config.sampling.output_dir)
+    output_dir = base_dir / layout
+    print(f"Output directory: {output_dir}")
+
+    # Create all mixtures (ring: 140, grid: 265)
     print("\nCreating mixture candidates...")
-    factory = MixtureFactory(config.gmm)
+    if layout == "grid":
+        factory = GridMixtureFactory(config.gmm)
+    else:
+        factory = RingMixtureFactory(config.gmm)
     mixtures = factory.create_all()
 
     n_type1 = sum(1 for m in mixtures.values() if m.mixture_type == 1)
     n_type2 = sum(1 for m in mixtures.values() if m.mixture_type == 2)
     n_type3 = sum(1 for m in mixtures.values() if m.mixture_type == 3)
-    print(f"  Type 1 (single): {n_type1}")
-    print(f"  Type 2 (pairs):  {n_type2}")
-    print(f"  Type 3 (quartets): {n_type3}")
+    print(f"  Type 1: {n_type1}")
+    print(f"  Type 2: {n_type2}")
+    print(f"  Type 3: {n_type3}")
     print(f"  Total: {len(mixtures)}")
 
     # Generate and save samples
     print("\nGenerating samples...")
     manager = SampleManager(config)
-    manifest = manager.generate_all(mixtures)
+    manifest = manager.generate_all(mixtures, output_dir=output_dir)
 
-    print(f"\nDone! {len(manifest)} .npz files saved to {config.sampling.output_dir}/")
-    print(f"Manifest: {config.sampling.output_dir}/manifest.json")
+    print(f"\nDone! {len(manifest)} .npz files saved to {output_dir}/")
+    print(f"Manifest: {output_dir}/manifest.json")
 
 
 if __name__ == "__main__":

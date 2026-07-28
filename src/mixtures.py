@@ -1,4 +1,5 @@
-"""Mixture factory — creates all 140 candidate mixtures from 16 base Gaussians."""
+"""Ring mixture factory — creates all 140 candidate mixtures from 16 base
+Gaussians placed uniformly on a circle."""
 
 from __future__ import annotations
 
@@ -12,7 +13,7 @@ from .config import GMMConfig
 from .gmm import BaseGaussian, Mixture
 
 
-class MixtureFactory:
+class RingMixtureFactory:
     """Creates the three mixture types from base Gaussians on a ring.
 
     Parameters
@@ -155,3 +156,7 @@ class MixtureFactory:
             mixture_type=0,  # special type for the superposition
             label="uniform_superposition",
         )
+
+
+# Backward-compatible alias
+MixtureFactory = RingMixtureFactory

@@ -2,17 +2,31 @@
 # ==========================================
 
 gmm:
-  # Number of base Gaussians placed uniformly on a circle
-  n_components: 16
-
-  # Radius of the circle on which component means are placed
-  radius: 1.0
+  # Layout geometry: "ring" (16 Gaussians on a circle) or "grid" (36 Gaussians on a 6x6 lattice)
+  layout: "ring"
 
   # Standard deviation of each Gaussian (isotropic: covariance = sigma^2 * I)
   sigma: 0.08
 
   # Random seed for reproducibility
   random_seed: 42
+
+  # --- Ring layout parameters ---
+  # Number of base Gaussians placed uniformly on a circle
+  n_components: 16
+
+  # Radius of the circle on which component means are placed
+  radius: 1.0
+
+  # --- Grid layout parameters ---
+  # Number of rows in the 2D lattice
+  grid_rows: 6
+
+  # Number of columns in the 2D lattice
+  grid_cols: 6
+
+  # Spacing between adjacent grid points (grid is centered at origin)
+  grid_spacing: 0.4
 
 sampling:
   # Number of i.i.d. samples to draw from each candidate mixture
