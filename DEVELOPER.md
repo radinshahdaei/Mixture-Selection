@@ -40,7 +40,7 @@ algorithms prune or select among these candidates under sparsity constraints.
 
 #### Random 3D Layout (`gmm.layout: "random_3d"`)
 
-- **N = 16** 3D Gaussians with **full random PSD covariances** (not isotropic).
+- **N = 20** 3D Gaussians with **full random PSD covariances** (not isotropic).
 - Means drawn uniformly from [-scale, scale]³. Default scale = 2.0.
 - Covariances generated via Wishart-like construction: A @ Aᵀ where
   A ~ N(0, cov_scale, (3,3)). Default cov_scale = 1.0.
@@ -50,15 +50,15 @@ algorithms prune or select among these candidates under sparsity constraints.
 
 | Type | Count | Description |
 |------|-------|-------------|
-| Type 1 | 16 | Single base Gaussian (one per random component) |
-| **Total** | **16** | |
+| Type 1 | 20 | Single base Gaussian (one per random component) |
+| **Total** | **20** | |
 
 All mixtures are equally weighted internally.
 
 ### Theoretical Properties
 
 - The **RKE optimum** is the uniform mixture over all base Gaussians (16 for
-  ring/random_3d, 36 for grid). It admits many equivalent decompositions:
+  ring, 20 for random_3d, 36 for grid). It admits many equivalent decompositions:
   Type-1 singles, Type-2 combos, or any combination producing uniform mass.
 - Under a **four-sparse constraint**, the only valid representation uses the
   four Type-3 mixtures in any layout.
@@ -205,7 +205,7 @@ config.yaml  ──►  src/config.py  ──►  Config dataclass
 **`RandomMixtureFactory`** (`random_mixtures.py`) — Builds N standalone 3D Gaussians.
 - `_create_base_gaussians()` → N Gaussians with random 3D means (uniform in
   [-scale, scale]³) and random PSD covariances (A @ Aᵀ with A ~ N(0, cov_scale)).
-- `create_all()` → N single-Gaussian candidates (Type 1 only, no mixtures)
+- `create_all()` → N single-Gaussian candidates
 - `create_uniform_superposition()` → all N bases equally weighted
 
 **`SampleManager`** (`sampling.py`) — Sample generation and .npz I/O.
@@ -237,7 +237,7 @@ Each file is self-describing:
 | `covariances` | float64 | (K, D, D) | Full cov matrices (random_3d only) |
 | `label` | str | scalar | e.g. "type2_3_7" or "type2_0_1_2_3" |
 | `layout` | str | scalar | "ring", "grid", or "random_3d" |
-| `n_components_base` | int32 | scalar | N (16 or 36) |
+| `n_components_base` | int32 | scalar | N (16, 20, or 36) |
 | `radius` | float64 | scalar | Circle radius (ring only) |
 | `scale` | float64 | scalar | Hypercube half-extent (random_3d only) |
 
@@ -278,7 +278,7 @@ Use `build_mixture_index(manifest)` to get the exact mapping for any layout.
 # Each layout has a dedicated config file
 python scripts/generate_samples.py --config config_ring.yaml       # 140 candidates
 python scripts/generate_samples.py --config config_grid.yaml       # 265 candidates
-python scripts/generate_samples.py --config config_random_3d.yaml  # 16 candidates (3D singles)
+python scripts/generate_samples.py --config config_random_3d.yaml  # 20 candidates (3D singles)
 ```
 
 Samples are saved under `data/samples/{layout}/type{1,2,3}/` with a

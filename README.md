@@ -14,7 +14,7 @@ pip install -r requirements.txt
 # Generate samples (use --config to pick layout)
 python scripts/generate_samples.py --config config_ring.yaml       # 140 candidates
 python scripts/generate_samples.py --config config_grid.yaml       # 265 candidates
-python scripts/generate_samples.py --config config_random_3d.yaml  # 16 candidates (3D singles)
+python scripts/generate_samples.py --config config_random_3d.yaml  # 20 candidates (3D singles)
 
 # Visualize (ring and grid only; random_3d has no viz)
 python scripts/visualize.py --config config_ring.yaml --demo --reference
@@ -30,13 +30,13 @@ python scripts/validate_random_3d.py
 |------------|-------|--------|--------|--------|-------|-----|
 | Ring       |    16 |     16 |    120 |      4 | **140** | 2D isotropic |
 | Grid       |    36 |     36 |    225 |      4 | **265** | 2D isotropic |
-| Random 3D  |    16 |     16 |      0 |      0 |  **16** | 3D full cov |
+| Random 3D  |    20 |     20 |      0 |      0 |  **20** | 3D full cov |
 
 - **Ring**: 16 Gaussians on a circle of radius R=1.0. Type 2 = all C(16,2) pairs;
   Type 3 = four disjoint consecutive quartets.
 - **Grid**: 36 Gaussians on a 6×6 lattice. Type 2 = all C(6,2)×C(6,2) 2-row,
   2-col intersection blocks; Type 3 = four disjoint 3×3 blocks.
-- **Random 3D**: 16 Gaussians in 3D with means drawn uniformly from [-scale, scale]³
+- **Random 3D**: 20 Gaussians in 3D with means drawn uniformly from [-scale, scale]³
   and full random PSD covariances (A @ Aᵀ). Unlike ring/grid, there are **no mixtures** —
   each candidate is a single Gaussian (Type 1 only). **No visualization** — data generation only.
 

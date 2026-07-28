@@ -14,7 +14,7 @@ gmm:
   random_seed: 42
 
   # --- Ring layout parameters (unused for random_3d) ---
-  n_components: 16
+  n_components: 20
   radius: 1.0
 
   # --- Grid layout parameters (unused for random_3d) ---
