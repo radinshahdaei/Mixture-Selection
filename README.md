@@ -1,9 +1,9 @@
 # Mixture Selection
 
-Sparse mixture selection on Gaussian mixture models. Base Gaussians are placed on
-either a **ring** (16 components) or a **grid** (36 components on a 6×6 lattice).
-Three families of equally-weighted candidate mixtures are defined per layout,
-studied under sparsity constraints.
+Sparse mixture selection on Gaussian mixture models. Three layouts are supported:
+a **ring** of 16 Gaussians, a 6×6 **grid** of 36 Gaussians, and a **random 3D**
+layout with full PSD covariances. Three families of equally-weighted candidate
+mixtures are defined per layout, studied under sparsity constraints.
 
 ## Quick start
 
@@ -11,36 +11,59 @@ studied under sparsity constraints.
 conda create -n mixture-selection python=3.11 -y && conda activate mixture-selection
 pip install -r requirements.txt
 
-# Default layout (ring): 140 candidates × 5000 samples → data/samples/ring/
-python scripts/generate_samples.py
+# Generate samples (use --config to pick layout)
+python scripts/generate_samples.py --config config_ring.yaml       # 140 candidates
+python scripts/generate_samples.py --config config_grid.yaml       # 265 candidates
+python scripts/generate_samples.py --config config_random_3d.yaml  # 140 candidates (3D)
 
-# For grid layout, change gmm.layout to "grid" in config.yaml, then:
-python scripts/generate_samples.py           # 265 candidates → data/samples/grid/
+# Visualize (ring and grid only; random_3d has no viz)
+python scripts/visualize.py --config config_ring.yaml --demo --reference
+python scripts/visualize.py --config config_grid.yaml --demo --reference
 
-python scripts/visualize.py --demo           # all interesting weight vectors
-python scripts/visualize.py --reference      # all base Gaussians with labels
+# Validate random_3d data
+python scripts/validate_random_3d.py
 ```
 
 ## Layouts
 
-| Layout  | Bases | Type 1 | Type 2 | Type 3 | Total |
-|---------|-------|--------|--------|--------|-------|
-| Ring    |    16 |     16 |    120 |      4 | **140** |
-| Grid    |    36 |     36 |    225 |      4 | **265** |
+| Layout     | Bases | Type 1 | Type 2 | Type 3 | Total | Dim |
+|------------|-------|--------|--------|--------|-------|-----|
+| Ring       |    16 |     16 |    120 |      4 | **140** | 2D isotropic |
+| Grid       |    36 |     36 |    225 |      4 | **265** | 2D isotropic |
+| Random 3D  |    16 |     16 |    120 |      4 | **140** | 3D full cov |
 
 - **Ring**: 16 Gaussians on a circle of radius R=1.0. Type 2 = all C(16,2) pairs;
   Type 3 = four disjoint consecutive quartets.
 - **Grid**: 36 Gaussians on a 6×6 lattice. Type 2 = all C(6,2)×C(6,2) 2-row,
   2-col intersection blocks; Type 3 = four disjoint 3×3 blocks.
+- **Random 3D**: 16 Gaussians in 3D with means drawn uniformly from [-scale, scale]³
+  and full random PSD covariances (A @ Aᵀ). Same Type 1/2/3 structure as ring.
+  **No visualization** — data generation only.
 
 The RKE optimum is the uniform mixture over all base Gaussians. Under a
 four-sparse constraint the only valid representation uses the four Type-3
-mixtures in either layout.
+mixtures in any layout.
 
 ## Configuration
 
-All parameters live in `config.yaml` — set `gmm.layout` to `"ring"` or `"grid"`
-to select the geometry. See [DEVELOPER.md](DEVELOPER.md) for the full schema.
+Dedicated config files for each layout:
+
+| File | Layout |
+|------|--------|
+| `config_ring.yaml` | Ring (default) |
+| `config_grid.yaml` | Grid |
+| `config_random_3d.yaml` | Random 3D |
+
+All share the same schema — only `gmm.layout` and layout-specific parameters
+differ. See [DEVELOPER.md](DEVELOPER.md) for the full schema.
+
+## Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `scripts/generate_samples.py` | Generate .npz samples for any layout |
+| `scripts/visualize.py` | Plot weighted mixture selections (2D only) |
+| `scripts/validate_random_3d.py` | Validate random_3d data integrity |
 
 ## Visualization API
 

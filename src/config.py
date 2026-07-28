@@ -11,7 +11,7 @@ import yaml
 class GMMConfig:
     """Parameters for the GMM component generation."""
 
-    layout: str = "ring"  # "ring" or "grid"
+    layout: str = "ring"  # "ring" | "grid" | "random_3d"
     sigma: float = 0.2
     random_seed: int = 42
 
@@ -23,6 +23,10 @@ class GMMConfig:
     grid_rows: int = 6
     grid_cols: int = 6
     grid_spacing: float = 0.4
+
+    # Random 3D layout
+    random_3d_scale: float = 2.0  # means: uniform in [-scale, scale]^3
+    random_3d_cov_scale: float = 1.0  # std of entries in A where cov = A @ A.T
 
 
 @dataclass

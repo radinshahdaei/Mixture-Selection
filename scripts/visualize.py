@@ -197,6 +197,11 @@ def main():
     viz_cfg = config.visualization
     layout = config.gmm.layout
 
+    if layout == "random_3d":
+        print("ERROR: Visualization is not supported for random_3d layout (3D data).")
+        print("The random_3d factory is for data generation only.")
+        sys.exit(1)
+
     # Load manifest (layout-specific subdirectory)
     samples_dir = Path(config.sampling.output_dir) / layout
     try:

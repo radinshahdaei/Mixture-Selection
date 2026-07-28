@@ -1,8 +1,9 @@
-# Mixture Selection — GMM Configuration
-# ==========================================
+# Mixture Selection — GMM Configuration (Ring Layout)
+# =====================================================
+# 16 Gaussians on a circle → 140 candidate mixtures.
 
 gmm:
-  # Layout geometry: "ring" (16 on circle) | "grid" (36 on 6x6 lattice) | "random_3d" (N random 3D)
+  # Layout geometry: "ring" (16 Gaussians on a circle)
   layout: "ring"
 
   # Standard deviation of each Gaussian (isotropic: covariance = sigma^2 * I)
@@ -18,21 +19,13 @@ gmm:
   # Radius of the circle on which component means are placed
   radius: 1.0
 
-  # --- Grid layout parameters ---
-  # Number of rows in the 2D lattice
+  # --- Grid layout parameters (unused for ring) ---
   grid_rows: 6
-
-  # Number of columns in the 2D lattice
   grid_cols: 6
-
-  # Spacing between adjacent grid points (grid is centered at origin)
   grid_spacing: 0.4
 
-  # --- Random 3D layout parameters ---
-  # Means drawn uniformly from [-random_3d_scale, random_3d_scale]^3
+  # --- Random 3D layout parameters (unused for ring) ---
   random_3d_scale: 2.0
-
-  # Scale of entries in random matrix A where cov = A @ A^T
   random_3d_cov_scale: 1.0
 
 sampling:

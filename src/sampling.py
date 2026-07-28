@@ -74,7 +74,13 @@ class SampleManager:
         # Add extra context
         meta["samples"] = samples.astype(np.float32)
         meta["n_components_base"] = np.array(self.config.gmm.n_components, dtype=np.int32)
-        meta["radius"] = np.array(self.config.gmm.radius, dtype=np.float64)
+
+        layout = self.config.gmm.layout
+        meta["layout"] = np.array(layout, dtype=str)
+        if layout == "ring":
+            meta["radius"] = np.array(self.config.gmm.radius, dtype=np.float64)
+        elif layout == "random_3d":
+            meta["scale"] = np.array(self.config.gmm.random_3d_scale, dtype=np.float64)
 
         np.savez_compressed(filepath, **meta)
 

@@ -1,31 +1,25 @@
-# Mixture Selection — GMM Configuration
-# ==========================================
+# Mixture Selection — GMM Configuration (Random 3D Layout)
+# ==========================================================
+# 16 random 3D Gaussians with full PSD covariances → 140 candidate mixtures.
+# NOTE: This layout has no visualization support (3D data).
 
 gmm:
-  # Layout geometry: "ring" (16 on circle) | "grid" (36 on 6x6 lattice) | "random_3d" (N random 3D)
-  layout: "ring"
+  # Layout geometry: "random_3d" (N random 3D Gaussians)
+  layout: "random_3d"
 
-  # Standard deviation of each Gaussian (isotropic: covariance = sigma^2 * I)
+  # Standard deviation (unused for random_3d — components use full covariances)
   sigma: 0.08
 
-  # Random seed for reproducibility
+  # Random seed for reproducibility (controls means and covariances)
   random_seed: 42
 
-  # --- Ring layout parameters ---
-  # Number of base Gaussians placed uniformly on a circle
+  # --- Ring layout parameters (unused for random_3d) ---
   n_components: 16
-
-  # Radius of the circle on which component means are placed
   radius: 1.0
 
-  # --- Grid layout parameters ---
-  # Number of rows in the 2D lattice
+  # --- Grid layout parameters (unused for random_3d) ---
   grid_rows: 6
-
-  # Number of columns in the 2D lattice
   grid_cols: 6
-
-  # Spacing between adjacent grid points (grid is centered at origin)
   grid_spacing: 0.4
 
   # --- Random 3D layout parameters ---

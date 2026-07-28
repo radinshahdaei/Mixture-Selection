@@ -18,6 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from src.config import load_config
 from src.grid_mixtures import GridMixtureFactory
 from src.mixtures import RingMixtureFactory
+from src.random_mixtures import RandomMixtureFactory
 from src.sampling import SampleManager
 
 
@@ -45,10 +46,12 @@ def main():
     output_dir = base_dir / layout
     print(f"Output directory: {output_dir}")
 
-    # Create all mixtures (ring: 140, grid: 265)
+    # Create all mixtures (ring: 140, grid: 265, random_3d: 140)
     print("\nCreating mixture candidates...")
     if layout == "grid":
         factory = GridMixtureFactory(config.gmm)
+    elif layout == "random_3d":
+        factory = RandomMixtureFactory(config.gmm)
     else:
         factory = RingMixtureFactory(config.gmm)
     mixtures = factory.create_all()
