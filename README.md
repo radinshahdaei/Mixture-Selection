@@ -17,11 +17,11 @@ python scripts/visualize.py --reference  # all 16 bases with labels
 
 ## Mixture types
 
-| Type | Count | Description |
-|------|-------|-------------|
-| Type 1 | 16 | Single base Gaussian |
-| Type 2 | 120 | All two-component pairs C(16,2) |
-| Type 3 | 4 | Four-component disjoint quartets |
+| Type   | Count | Description                          |
+|--------|-------|--------------------------------------|
+| Type 1 | 16    | Single base Gaussian                 |
+| Type 2 | 120   | All two-component pairs C(16,2)      |
+| Type 3 | 4     | Four-component disjoint quartets     |
 
 The RKE optimum is the uniform mixture over all 16 bases. Under a four-sparse
 constraint the only valid representation uses the four Type-3 mixtures.
