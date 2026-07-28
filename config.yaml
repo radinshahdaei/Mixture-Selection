@@ -1,0 +1,44 @@
+# Mixture Selection — GMM Configuration
+# ==========================================
+
+gmm:
+  # Number of base Gaussians placed uniformly on a circle
+  n_components: 16
+
+  # Radius of the circle on which component means are placed
+  radius: 1.0
+
+  # Standard deviation of each Gaussian (isotropic: covariance = sigma^2 * I)
+  sigma: 0.08
+
+  # Random seed for reproducibility
+  random_seed: 42
+
+sampling:
+  # Number of i.i.d. samples to draw from each candidate mixture
+  n_samples: 5000
+
+  # Directory where .npz sample files are saved
+  output_dir: "data/samples"
+
+visualization:
+  # Visual style: "light" | "dark"
+  style: "light"
+
+  # Output resolution
+  dpi: 150
+
+  # Default figure size in inches (width, height)
+  figsize: [10, 10]
+
+  # Directory where figures are saved
+  figure_dir: "figures"
+
+  # Total points to plot in mixture-selection view
+  total_samples: 8000
+
+  # Point alpha for scatter
+  scatter_alpha: 0.35
+
+  # Point size for scatter
+  scatter_point_size: 1.2
