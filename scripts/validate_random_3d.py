@@ -2,14 +2,13 @@
 """Validate random_3d sample data for correctness.
 
 Checks:
-  1. All 140 .npz files exist and load correctly
+  1. All N .npz files exist and load correctly
   2. Manifest is consistent with files on disk
   3. Sample shapes: (5000, 3)
   4. Means within [-scale, scale]^3
   5. Covariance matrices are valid PSD
   6. Reproducibility: same seed → same data
-  7. Mixture type counts: 16 + 120 + 4 = 140
-  8. Uniform superposition: all 16 bases equally weighted
+  7. Candidate structure: N single-type-1 Gaussians (no mixtures)
 
 Usage:
     python scripts/validate_random_3d.py
@@ -78,20 +77,22 @@ def main():
 
     with open(manifest_path) as f:
         manifest = json.load(f)
-    failures += check(len(manifest) == 140, f"manifest has 140 entries (got {len(manifest)})")
+    failures += check(len(manifest) == n_components,
+                      f"manifest has {n_components} entries (got {len(manifest)})")
 
-    # Check all three type directories referenced
+    # Check only Type 1 labels exist
     labels = list(manifest.keys())
     t1 = [l for l in labels if l.startswith("type1_")]
     t2 = [l for l in labels if l.startswith("type2_")]
     t3 = [l for l in labels if l.startswith("type3_")]
-    failures += check(len(t1) == 16, f"Type 1: 16 mixtures (got {len(t1)})")
-    failures += check(len(t2) == 120, f"Type 2: 120 mixtures (got {len(t2)})")
-    failures += check(len(t3) == 4, f"Type 3: 4 mixtures (got {len(t3)})")
+    failures += check(len(t1) == n_components,
+                      f"Type 1: {n_components} Gaussians (got {len(t1)})")
+    failures += check(len(t2) == 0, f"Type 2: 0 mixtures (got {len(t2)})")
+    failures += check(len(t3) == 0, f"Type 3: 0 mixtures (got {len(t3)})")
 
     # Check no extra labels
     all_expected = set(t1 + t2 + t3)
-    failures += check(len(all_expected) == 140, "no duplicate/missing labels")
+    failures += check(len(all_expected) == n_components, "no duplicate/missing labels")
 
     # --- 2. File existence & loadability ----------------------------------
     print("\n2. File integrity")
@@ -100,7 +101,8 @@ def main():
         p = Path(path_str)
         if not p.exists():
             missing.append(label)
-    failures += check(len(missing) == 0, f"all 140 .npz files exist (missing: {len(missing)})")
+    failures += check(len(missing) == 0,
+                      f"all {n_components} .npz files exist (missing: {len(missing)})")
     if missing:
         for m in missing[:5]:
             print(f"      missing: {m}")
@@ -135,7 +137,8 @@ def main():
         if "sigma" in d:
             no_sigma = False
 
-    failures += check(shape_ok, f"spot-check {len(spot_checks)} files: all shapes ({n_samples}, 3)")
+    failures += check(shape_ok,
+                      f"spot-check {len(spot_checks)} files: all shapes ({n_samples}, 3)")
     failures += check(has_cov, "spot-check: all have 'covariances' key")
     failures += check(has_layout, "spot-check: layout='random_3d'")
     failures += check(has_scale_key, f"spot-check: scale={scale}")
@@ -147,7 +150,7 @@ def main():
     for label, path_str in manifest.items():
         d = np.load(Path(path_str), allow_pickle=True)
         means_all.append(d["means"])
-    all_means = np.concatenate(means_all, axis=0)  # shape (total_components, 3)
+    all_means = np.concatenate(means_all, axis=0)  # shape (N, 3)
 
     in_bounds = np.all((all_means >= -scale - 1e-10) & (all_means <= scale + 1e-10))
     failures += check(in_bounds, f"all component means within [-{scale}, {scale}]^3")
@@ -155,33 +158,35 @@ def main():
 
     # Check that means are NOT all the same (i.e. actually random)
     unique_means = len(np.unique(np.round(all_means, decimals=6), axis=0))
-    failures += check(unique_means >= 8,
-                      f"at least 8 distinct means (got {unique_means}) — confirms randomness")
+    failures += check(unique_means >= min(8, n_components),
+                      f"at least {min(8, n_components)} distinct means "
+                      f"(got {unique_means}) — confirms randomness")
 
     # --- 5. Covariance validity --------------------------------------------
     print("\n5. Covariance matrices")
 
-    # Check all unique base Gaussian covariances (from type1 files)
+    # Check all covariances from the files
     covs = []
     for label in t1:
         d = np.load(Path(manifest[label]), allow_pickle=True)
         covs.append(d["covariances"][0])  # single-component → shape (3,3)
-    covs = np.array(covs)  # (16, 3, 3)
+    covs = np.array(covs)  # (N, 3, 3)
 
     # 5a. Symmetry
     symmetric = np.allclose(covs, covs.transpose(0, 2, 1), atol=1e-12)
-    failures += check(symmetric, "all 16 covariances are symmetric")
+    failures += check(symmetric, f"all {n_components} covariances are symmetric")
 
     # 5b. Positive semidefinite (all eigenvalues >= 0)
     eigenvals = np.linalg.eigvalsh(covs)
     all_psd = np.all(eigenvals >= -1e-12)
-    failures += check(all_psd, "all 16 covariances are PSD (eigenvalues >= 0)")
+    failures += check(all_psd, f"all {n_components} covariances are PSD (eigenvalues >= 0)")
 
     # 5c. Not all identical (randomness check)
-    cov_fingerprints = np.round(covs, decimals=8).reshape(16, -1)
+    cov_fingerprints = np.round(covs, decimals=8).reshape(n_components, -1)
     unique_covs = np.unique(cov_fingerprints, axis=0).shape[0]
-    failures += check(unique_covs >= 8,
-                      f"at least 8 distinct covariances (got {unique_covs}) — confirms randomness")
+    failures += check(unique_covs >= min(8, n_components),
+                      f"at least {min(8, n_components)} distinct covariances "
+                      f"(got {unique_covs}) — confirms randomness")
 
     # 5d. Not isotropic (off-diagonals should be non-zero)
     off_diag_mask = ~np.eye(3, dtype=bool)
@@ -211,41 +216,18 @@ def main():
     cov_repro = np.allclose(covs1, covs2, atol=1e-15)
     failures += check(cov_repro, "same seed → identical covariances (reproducible)")
 
-    # --- 7. Mixture structure validation -----------------------------------
-    print("\n7. Mixture structure")
+    # --- 7. Candidate structure --------------------------------------------
+    print("\n7. Candidate structure")
 
-    # Type 1: single components, weight 1.0
-    m1 = factory1.create_type1()
-    t1_ok = all(
+    all_mixtures = factory1.create_all()
+    ok = all(
         m.mixture_type == 1
         and m.num_components == 1
         and np.isclose(m.weights[0], 1.0)
         and m.ndim == 3
-        for m in m1
+        for m in all_mixtures.values()
     )
-    failures += check(t1_ok, "Type 1: 16 singles, weight=1.0, ndim=3")
-
-    # Type 2: pairs, equal weight 0.5
-    m2 = factory1.create_type2()
-    t2_ok = all(
-        m.mixture_type == 2
-        and m.num_components == 2
-        and np.allclose(m.weights, 0.5)
-        and m.ndim == 3
-        for m in m2
-    )
-    failures += check(t2_ok, "Type 2: 120 pairs, weight=0.5, ndim=3")
-
-    # Type 3: quartets, equal weight 0.25
-    m3 = factory1.create_type3()
-    t3_ok = all(
-        m.mixture_type == 3
-        and m.num_components == 4
-        and np.allclose(m.weights, 0.25)
-        and m.ndim == 3
-        for m in m3
-    )
-    failures += check(t3_ok, "Type 3: 4 quartets, weight=0.25, ndim=3")
+    failures += check(ok, f"{n_components} single-Gaussian candidates, weight=1.0, ndim=3")
 
     # --- Summary -----------------------------------------------------------
     print(f"\n{'='*50}")

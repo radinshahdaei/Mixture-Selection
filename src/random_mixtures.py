@@ -1,10 +1,7 @@
-"""Random 3D mixture factory — creates all 140 candidate mixtures from N base
-Gaussians with random means and random full PSD covariances in 3D."""
+"""Random 3D factory — creates N standalone 3D Gaussians with random means and
+random full PSD covariances. No mixtures — each candidate is a single Gaussian."""
 
 from __future__ import annotations
-
-import itertools
-from typing import Optional
 
 import numpy as np
 from numpy.typing import NDArray
@@ -14,11 +11,14 @@ from .gmm import BaseGaussian, Mixture
 
 
 class RandomMixtureFactory:
-    """Creates the three mixture types from randomly-placed 3D base Gaussians.
+    """Creates N standalone 3D Gaussians with random means and covariances.
 
     Each base Gaussian is independently sampled: its mean is drawn uniformly
     from [-scale, scale]^3, and its covariance is a random positive-definite
     matrix generated via A @ A^T where A ~ N(0, cov_scale, (3,3)).
+
+    Unlike the ring and grid factories, this produces only Type-1 candidates
+    (single Gaussians). There are no Type-2 pairs or Type-3 quartets.
 
     Parameters
     ----------
@@ -62,98 +62,27 @@ class RandomMixtureFactory:
         return A @ A.T
 
     # ------------------------------------------------------------------
-    # Type 1 — N single-component mixtures
+    # Candidates — N single Gaussians (no mixtures)
     # ------------------------------------------------------------------
 
-    def create_type1(self) -> list[Mixture]:
-        """Each base Gaussian as its own single-component mixture.
+    def create_all(self) -> dict[str, Mixture]:
+        """Return all N candidates keyed by label.
 
-        Returns N Mixture objects (16 for the default n_components).
+        Each candidate is a single Gaussian wrapped as a Mixture with weight 1.0.
+
+        Returns
+        -------
+        dict[str, Mixture]
+            Keys like ``"type1_0"``, ``"type1_1"``, ..., ``"type1_{N-1}"``.
         """
-        mixtures = []
+        all_mixtures: dict[str, Mixture] = {}
+
         for g in self.base_gaussians:
             m = Mixture(
                 components=[(1.0, g)],
                 mixture_type=1,
                 label=f"type1_{g.index}",
             )
-            mixtures.append(m)
-        return mixtures
-
-    # ------------------------------------------------------------------
-    # Type 2 — all C(N, 2) two-component mixtures
-    # ------------------------------------------------------------------
-
-    def create_type2(self) -> list[Mixture]:
-        """All two-component equally-weighted mixtures.
-
-        Returns C(N,2) = 120 mixtures for N=16.
-        """
-        n = self.config.n_components
-        mixtures = []
-        for i, j in itertools.combinations(range(n), 2):
-            g_i = self.base_gaussians[i]
-            g_j = self.base_gaussians[j]
-            m = Mixture(
-                components=[(0.5, g_i), (0.5, g_j)],
-                mixture_type=2,
-                label=f"type2_{i}_{j}",
-            )
-            mixtures.append(m)
-        return mixtures
-
-    # ------------------------------------------------------------------
-    # Type 3 — N/4 four-component mixtures (disjoint quartets)
-    # ------------------------------------------------------------------
-
-    def create_type3(self) -> list[Mixture]:
-        """Four-component mixtures from disjoint consecutive quartets.
-
-        Partitions indices 0..N-1 into N/4 groups of 4 consecutive indices.
-        For N=16: {0,1,2,3}, {4,5,6,7}, {8,9,10,11}, {12,13,14,15}.
-        Returns 4 mixtures.
-        """
-        n = self.config.n_components
-        q = 4  # quartet size
-        n_quartets = n // q
-
-        if n % q != 0:
-            raise ValueError(
-                f"n_components ({n}) must be divisible by 4 for Type 3 mixtures."
-            )
-
-        mixtures = []
-        for t in range(n_quartets):
-            indices = list(range(t * q, (t + 1) * q))
-            comps = [(0.25, self.base_gaussians[idx]) for idx in indices]
-            idx_str = "_".join(str(i) for i in indices)
-            m = Mixture(
-                components=comps,
-                mixture_type=3,
-                label=f"type3_{idx_str}",
-            )
-            mixtures.append(m)
-        return mixtures
-
-    # ------------------------------------------------------------------
-    # All mixtures
-    # ------------------------------------------------------------------
-
-    def create_all(self) -> dict[str, Mixture]:
-        """Return all 140 mixtures keyed by label.
-
-        Returns
-        -------
-        dict[str, Mixture]
-            Keys like ``"type1_0"``, ``"type2_3_7"``, ``"type3_0_1_2_3"``.
-        """
-        all_mixtures: dict[str, Mixture] = {}
-
-        for m in self.create_type1():
-            all_mixtures[m.label] = m
-        for m in self.create_type2():
-            all_mixtures[m.label] = m
-        for m in self.create_type3():
             all_mixtures[m.label] = m
 
         return all_mixtures

@@ -44,15 +44,14 @@ algorithms prune or select among these candidates under sparsity constraints.
 - Means drawn uniformly from [-scale, scale]³. Default scale = 2.0.
 - Covariances generated via Wishart-like construction: A @ Aᵀ where
   A ~ N(0, cov_scale, (3,3)). Default cov_scale = 1.0.
-- Same Type 1/2/3 structure as ring: 16 + 120 + 4 = **140** candidates.
+- Unlike ring/grid, this layout produces **only Type 1** (single Gaussians).
+  No Type-2 pairs or Type-3 quartets — just N standalone Gaussian candidates.
 - **No visualization support** — the visualization code is 2D-only.
 
 | Type | Count | Description |
 |------|-------|-------------|
 | Type 1 | 16 | Single base Gaussian (one per random component) |
-| Type 2 | 120 | All two-component equally-weighted pairs C(16,2) |
-| Type 3 | 4 | Four-component equally-weighted disjoint quartets |
-| **Total** | **140** | |
+| **Total** | **16** | |
 
 All mixtures are equally weighted internally.
 
@@ -203,14 +202,11 @@ config.yaml  ──►  src/config.py  ──►  Config dataclass
 - `create_all()` → dict[label → Mixture]
 - `create_uniform_superposition()` → all 36 bases equally weighted
 
-**`RandomMixtureFactory`** (`random_mixtures.py`) — Builds all 140 random 3D candidates.
-- `_create_base_gaussians()` → 16 Gaussians with random 3D means (uniform in
+**`RandomMixtureFactory`** (`random_mixtures.py`) — Builds N standalone 3D Gaussians.
+- `_create_base_gaussians()` → N Gaussians with random 3D means (uniform in
   [-scale, scale]³) and random PSD covariances (A @ Aᵀ with A ~ N(0, cov_scale)).
-- `create_type1()` → 16 single-component mixtures
-- `create_type2()` → 120 pair mixtures (all C(16,2) combinations)
-- `create_type3()` → 4 quartet mixtures (consecutive disjoint groups of 4)
-- `create_all()` → dict[label → Mixture]
-- `create_uniform_superposition()` → all 16 bases equally weighted
+- `create_all()` → N single-Gaussian candidates (Type 1 only, no mixtures)
+- `create_uniform_superposition()` → all N bases equally weighted
 
 **`SampleManager`** (`sampling.py`) — Sample generation and .npz I/O.
 - `generate(mixture, n)` → ndarray
@@ -260,7 +256,7 @@ Type 3. Within each type, labels are sorted by their integer components.
 2. **Indices 36..260**: Type 2 — all 225 2×2 blocks in lexicographic (row pair, col pair) order
 3. **Indices 261..264**: Type 3 — blocks 0, 1, 2, 3 (row-major over the 2×2 block grid)
 
-**Random 3D (140-dim):** Same as ring — 16 + 120 + 4 = 140.
+**Random 3D (16-dim):** Same as ring — 16 Type-1 labels, no Type-2 or Type-3.
 
 Use `build_mixture_index(manifest)` to get the exact mapping for any layout.
 
@@ -270,7 +266,7 @@ Use `build_mixture_index(manifest)` to get the exact mapping for any layout.
 |--------|--------|--------|--------|
 | Ring | `type1_0` | `type2_3_7` | `type3_0_1_2_3` |
 | Grid | `type1_2_3` | `type2_0_1_2_3` | `type3_block_0` |
-| Random 3D | `type1_0` | `type2_3_7` | `type3_0_1_2_3` |
+| Random 3D | `type1_0` | — | — |
 
 ---
 
@@ -282,7 +278,7 @@ Use `build_mixture_index(manifest)` to get the exact mapping for any layout.
 # Each layout has a dedicated config file
 python scripts/generate_samples.py --config config_ring.yaml       # 140 candidates
 python scripts/generate_samples.py --config config_grid.yaml       # 265 candidates
-python scripts/generate_samples.py --config config_random_3d.yaml  # 140 candidates (3D)
+python scripts/generate_samples.py --config config_random_3d.yaml  # 16 candidates (3D singles)
 ```
 
 Samples are saved under `data/samples/{layout}/type{1,2,3}/` with a
