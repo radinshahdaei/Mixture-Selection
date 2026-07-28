@@ -27,5 +27,11 @@ figures/
 # Conda
 .pixi/
 
+# Docs
+docs/
+
+# TeX
+*.tex
+
 # Claude
 CLAUDE.md
