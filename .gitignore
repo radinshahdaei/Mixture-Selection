@@ -9,6 +9,9 @@ build/
 data/samples/
 figures/
 
+# Experiment outputs (keep the code, not results)
+sparse_mixture_ucb/results*/
+
 # Environment
 .env
 .venv/
@@ -27,11 +30,12 @@ figures/
 # Conda
 .pixi/
 
-# Docs
+# Docs (but not experiment reports)
 docs/
-
-# TeX
-*.tex
-
-# Claude
-CLAUDE.md
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
