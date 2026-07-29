@@ -74,3 +74,20 @@ plot_mixture_selection(weights=w, manifest=manifest, layout="ring", save_path="o
 ```
 
 See [DEVELOPER.md](DEVELOPER.md) for the full developer guide.
+
+## Sparse Mixture-UCB
+
+Bandit algorithms for online sparse mixture selection with quadratic objectives (RKE, MMD). See `sparse_mixture_ucb/` for:
+
+- Fully-Corrective Sparse Mixture-UCB
+- Coherence-Structured FC with Forced Exploration
+- Non-sparse Mixture-UCB and standalone baselines
+
+```bash
+cd sparse_mixture_ucb
+pip install -r requirements.txt
+python -m sparse_ucb.check_solvers
+python -m sparse_ucb.run_experiment --objective both --m 8 --s 3 --T 2000 --reps 10 --out results
+```
+
+Full experiment report in `sparse_mixture_ucb/experiment_report.tex`.
