@@ -149,8 +149,8 @@ config.yaml  ──►  src/config.py  ──►  Config dataclass
              src/grid_mixtures.py   ──►  GridMixtureFactory
              src/random_mixtures.py ──►  RandomMixtureFactory
                        │              │
-                       │    BaseGaussian × 16 (ring/random) or 36 (grid)
-                       │    Mixture × 140 (ring/random) or 265 (grid)
+                       │    BaseGaussian × 16 (ring) or 36 (grid) or 20 (random_3d)
+                       │    Mixture × 140 (ring) or 265 (grid) or 20 (random_3d)
                        │
                        ▼
              src/sampling.py ──►  SampleManager
@@ -256,7 +256,7 @@ Type 3. Within each type, labels are sorted by their integer components.
 2. **Indices 36..260**: Type 2 — all 225 2×2 blocks in lexicographic (row pair, col pair) order
 3. **Indices 261..264**: Type 3 — blocks 0, 1, 2, 3 (row-major over the 2×2 block grid)
 
-**Random 3D (16-dim):** Same as ring — 16 Type-1 labels, no Type-2 or Type-3.
+**Random 3D (20-dim):** 20 Type-1 labels, no Type-2 or Type-3.
 
 Use `build_mixture_index(manifest)` to get the exact mapping for any layout.
 

@@ -5,12 +5,28 @@ __pycache__/
 dist/
 build/
 
-# Data & outputs
-data/samples/
-figures/
+# Data & outputs — mixtures/
+mixtures/data/
+mixtures/figures/
 
-# Experiment outputs (keep the code, not results)
+# Experiment outputs — sparse_mixture_ucb/ (keep the code, not the results)
 sparse_mixture_ucb/results*/
+
+# Experiment outputs — mixtures/
+mixtures/results*/
+
+# LaTeX (source + auxiliary)
+*.tex
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+
+# Docs
+docs/
 
 # Environment
 .env
@@ -29,13 +45,3 @@ sparse_mixture_ucb/results*/
 
 # Conda
 .pixi/
-
-# Docs (but not experiment reports)
-docs/
-*.aux
-*.log
-*.out
-*.toc
-*.synctex.gz
-*.fls
-*.fdb_latexmk

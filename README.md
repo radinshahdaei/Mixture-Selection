@@ -4,7 +4,7 @@ Two related projects on sparse mixture selection:
 
 | Project | Directory | Description |
 |---------|-----------|-------------|
-| Mixture Selection (GMM) | `mixture_selection/` | Gaussian mixture model generation, sampling, and visualization |
+| Mixture Selection (GMM) | `mixtures/` | Gaussian mixture model generation, sampling, and visualization |
 | Sparse Mixture-UCB | `sparse_mixture_ucb/` | Bandit algorithms for online sparse mixture optimization |
 
 ---
@@ -18,7 +18,7 @@ layout with full PSD covariances.
 ### Quick start
 
 ```bash
-cd mixture_selection
+cd mixtures
 conda create -n mixture-selection python=3.11 -y && conda activate mixture-selection
 pip install -r requirements.txt
 
@@ -43,7 +43,7 @@ python scripts/validate_random_3d.py
 | Grid       |    36 |     36 |    225 |      4 | **265** | 2D isotropic |
 | Random 3D  |    20 |     20 |      0 |      0 |  **20** | 3D full cov |
 
-See `mixture_selection/DEVELOPER.md` for the full developer guide.
+See `mixtures/DEVELOPER.md` for the full developer guide.
 
 ---
 

@@ -1,6 +1,6 @@
 # Mixture Selection — GMM Configuration (Random 3D Layout)
 # ==========================================================
-# 16 random 3D Gaussians with full PSD covariances → 140 candidate mixtures.
+# 20 random 3D Gaussians with full PSD covariances → 20 candidate mixtures.
 # NOTE: This layout has no visualization support (3D data).
 
 gmm:
